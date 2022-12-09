@@ -3,26 +3,14 @@
 // see LICENSE for license details.
 
 use crate::{
-    types::{
-        CompositeDefFields,
-        TypeGenerator,
-    },
+    types::{CompositeDefFields, TypeGenerator},
     CratePath,
 };
-use frame_metadata::{
-    v14::RuntimeMetadataV14,
-    PalletMetadata,
-};
-use heck::{
-    ToSnakeCase as _,
-    ToUpperCamelCase as _,
-};
+use frame_metadata::{v14::RuntimeMetadataV14, PalletMetadata};
+use heck::{ToSnakeCase as _, ToUpperCamelCase as _};
 use proc_macro2::TokenStream as TokenStream2;
 use proc_macro_error::abort_call_site;
-use quote::{
-    format_ident,
-    quote,
-};
+use quote::{format_ident, quote};
 use scale_info::form::PortableForm;
 
 /// Generate calls from the provided pallet's metadata. Each call returns a `StaticTxPayload`
@@ -45,7 +33,7 @@ pub fn generate_calls(
     let call = if let Some(ref calls) = pallet.calls {
         calls
     } else {
-        return quote!()
+        return quote!();
     };
 
     let mut struct_defs = super::generate_structs_from_variants(
@@ -59,20 +47,18 @@ pub fn generate_calls(
         .iter_mut()
         .map(|(variant_name, struct_def)| {
             let (call_fn_args, call_args): (Vec<_>, Vec<_>) = match struct_def.fields {
-                CompositeDefFields::Named(ref named_fields) => {
-                    named_fields
-                        .iter()
-                        .map(|(name, field)| {
-                            let fn_arg_type = &field.type_path;
-                            let call_arg = if field.is_boxed() {
-                                quote! { #name: ::std::boxed::Box::new(#name) }
-                            } else {
-                                quote! { #name }
-                            };
-                            (quote!( #name: #fn_arg_type ), call_arg)
-                        })
-                        .unzip()
-                }
+                CompositeDefFields::Named(ref named_fields) => named_fields
+                    .iter()
+                    .map(|(name, field)| {
+                        let fn_arg_type = &field.type_path;
+                        let call_arg = if field.is_boxed() {
+                            quote! { #name: ::std::boxed::Box::new(#name) }
+                        } else {
+                            quote! { #name }
+                        };
+                        (quote!( #name: #fn_arg_type ), call_arg)
+                    })
+                    .unzip(),
                 CompositeDefFields::NoFields => Default::default(),
                 CompositeDefFields::Unnamed(_) => {
                     abort_call_site!(

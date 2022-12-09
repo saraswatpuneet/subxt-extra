@@ -4,10 +4,7 @@
 
 use proc_macro_error::abort;
 use std::collections::HashMap;
-use syn::{
-    spanned::Spanned as _,
-    token,
-};
+use syn::{spanned::Spanned as _, token};
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct ItemMod {

@@ -14,37 +14,17 @@ use subxt_metadata::get_metadata_per_pallet_hash;
 use super::DerivesRegistry;
 use crate::{
     ir,
-    types::{
-        CompositeDef,
-        CompositeDefFields,
-        TypeGenerator,
-    },
-    utils::{
-        fetch_metadata_bytes_blocking,
-        Uri,
-    },
+    types::{CompositeDef, CompositeDefFields, TypeGenerator},
+    utils::{fetch_metadata_bytes_blocking, Uri},
     CratePath,
 };
 use codec::Decode;
-use frame_metadata::{
-    v14::RuntimeMetadataV14,
-    RuntimeMetadata,
-    RuntimeMetadataPrefixed,
-};
+use frame_metadata::{v14::RuntimeMetadataV14, RuntimeMetadata, RuntimeMetadataPrefixed};
 use heck::ToSnakeCase as _;
 use proc_macro2::TokenStream as TokenStream2;
 use proc_macro_error::abort_call_site;
-use quote::{
-    format_ident,
-    quote,
-};
-use std::{
-    collections::HashMap,
-    fs,
-    io::Read,
-    path,
-    string::ToString,
-};
+use quote::{format_ident, quote};
+use std::{collections::HashMap, fs, io::Read, path, string::ToString};
 use syn::parse_quote;
 
 /// Generates the API for interacting with a Substrate runtime.

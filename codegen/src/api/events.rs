@@ -2,10 +2,7 @@
 // This file is dual-licensed as Apache-2.0 or GPL-3.0.
 // see LICENSE for license details.
 
-use crate::{
-    types::TypeGenerator,
-    CratePath,
-};
+use crate::{types::TypeGenerator, CratePath};
 use frame_metadata::PalletMetadata;
 use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
@@ -50,7 +47,7 @@ pub fn generate_events(
     let event = if let Some(ref event) = pallet.event {
         event
     } else {
-        return quote!()
+        return quote!();
     };
 
     let struct_defs = super::generate_structs_from_variants(

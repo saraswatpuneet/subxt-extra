@@ -43,22 +43,16 @@
 
 mod api;
 mod ir;
+mod swagger;
 mod types;
 
 pub mod utils;
 
 pub use self::{
     api::{
-        generate_runtime_api_from_bytes,
-        generate_runtime_api_from_path,
-        generate_runtime_api_from_url,
-        RuntimeGenerator,
+        generate_runtime_api_from_bytes, generate_runtime_api_from_path,
+        generate_runtime_api_from_url, RuntimeGenerator,
     },
-    types::{
-        CratePath,
-        Derives,
-        DerivesRegistry,
-        Module,
-        TypeGenerator,
-    },
+    swagger::{generate_swagger_api_from_url, SwaggerGenerator},
+    types::{CratePath, Derives, DerivesRegistry, Module, TypeGenerator},
 };

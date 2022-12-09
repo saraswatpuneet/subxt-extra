@@ -2,29 +2,16 @@
 // This file is dual-licensed as Apache-2.0 or GPL-3.0.
 // see LICENSE for license details.
 
-use crate::{
-    types::TypeGenerator,
-    CratePath,
-};
+use crate::{types::TypeGenerator, CratePath};
 use frame_metadata::{
-    v14::RuntimeMetadataV14,
-    PalletMetadata,
-    StorageEntryMetadata,
-    StorageEntryModifier,
-    StorageEntryType,
-    StorageHasher,
+    v14::RuntimeMetadataV14, PalletMetadata, StorageEntryMetadata, StorageEntryModifier,
+    StorageEntryType, StorageHasher,
 };
 use heck::ToSnakeCase as _;
 use proc_macro2::TokenStream as TokenStream2;
 use proc_macro_error::abort_call_site;
-use quote::{
-    format_ident,
-    quote,
-};
-use scale_info::{
-    form::PortableForm,
-    TypeDef,
-};
+use quote::{format_ident, quote};
+use scale_info::{form::PortableForm, TypeDef};
 
 /// Generate functions which create storage addresses from the provided pallet's metadata.
 /// These addresses can be used to access and iterate over storage values.
@@ -45,7 +32,7 @@ pub fn generate_storage(
     let storage = if let Some(ref storage) = pallet.storage {
         storage
     } else {
-        return quote!()
+        return quote!();
     };
 
     let storage_fns: Vec<_> = storage
