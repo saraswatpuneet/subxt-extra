@@ -17,6 +17,7 @@ use serde::{
     Serializer,
 };
 use serde_json::Value;
+use http::Method;
 
 const OPEN_API_VERSION: &str = "3.0.0";
 

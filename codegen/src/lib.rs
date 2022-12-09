@@ -56,7 +56,7 @@ pub use self::{
         RuntimeGenerator,
     },
     swagger::{
-        generate_swagger_api_from_url,
+        generate_swagger_from_url,
         SwaggerGenerator,
     },
     types::{
