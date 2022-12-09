@@ -1,7 +1,13 @@
 use jsonrpsee::{
     async_client::ClientBuilder,
-    client_transport::ws::{Uri, WsTransportClientBuilder},
-    core::{client::ClientT, Error},
+    client_transport::ws::{
+        Uri,
+        WsTransportClientBuilder,
+    },
+    core::{
+        client::ClientT,
+        Error,
+    },
     http_client::HttpClientBuilder,
     rpc_params,
 };

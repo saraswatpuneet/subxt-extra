@@ -1,11 +1,21 @@
-mod document;
 use std::{
     cmp::Ordering,
-    collections::{BTreeMap, BTreeSet, HashMap},
-    hash::{Hash, Hasher},
+    collections::{
+        BTreeMap,
+        BTreeSet,
+        HashMap,
+    },
+    hash::{
+        Hash,
+        Hasher,
+    },
 };
 
-use serde::{ser::SerializeMap, Serialize, Serializer};
+use serde::{
+    ser::SerializeMap,
+    Serialize,
+    Serializer,
+};
 use serde_json::Value;
 
 const OPEN_API_VERSION: &str = "3.0.0";
@@ -18,7 +28,6 @@ pub(crate) struct Document<'a> {
     pub(crate) registry: Registry,
     pub(crate) external_document: Option<&'a MetaExternalDocument>,
 }
-
 
 #[allow(clippy::trivially_copy_pass_by_ref)]
 #[inline]
@@ -260,10 +269,11 @@ impl MetaSchema {
                         self.items = Some(Box::new(self_items.merge(*items)))
                     }
                     MetaSchemaRef::Reference(_) => {
-                        self.items = Some(Box::new(MetaSchemaRef::Inline(Box::new(MetaSchema {
-                            any_of: vec![*self_items, items],
-                            ..MetaSchema::ANY
-                        }))));
+                        self.items =
+                            Some(Box::new(MetaSchemaRef::Inline(Box::new(MetaSchema {
+                                any_of: vec![*self_items, items],
+                                ..MetaSchema::ANY
+                            }))));
                     }
                 }
             } else {
@@ -284,7 +294,10 @@ impl MetaSchema {
                     MetaSchemaRef::Reference(_) => {
                         self.additional_properties =
                             Some(Box::new(MetaSchemaRef::Inline(Box::new(MetaSchema {
-                                any_of: vec![*self_additional_properties, additional_properties],
+                                any_of: vec![
+                                    *self_additional_properties,
+                                    additional_properties,
+                                ],
                                 ..MetaSchema::ANY
                             }))));
                     }
@@ -330,7 +343,9 @@ impl MetaSchemaRef {
     #[must_use]
     pub fn merge(self, other: MetaSchema) -> Self {
         match self {
-            MetaSchemaRef::Inline(schema) => MetaSchemaRef::Inline(Box::new(schema.merge(other))),
+            MetaSchemaRef::Inline(schema) => {
+                MetaSchemaRef::Inline(Box::new(schema.merge(other)))
+            }
             MetaSchemaRef::Reference(name) => {
                 let other = MetaSchema::ANY.merge(other);
                 if other.is_empty() {
