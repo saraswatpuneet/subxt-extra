@@ -1,18 +1,7 @@
+#[allow(unused_imports)]
 use subxt_metadata::get_metadata_per_pallet_hash;
 
-use crate::{
-    ir,
-    types::{
-        CompositeDef,
-        CompositeDefFields,
-        TypeGenerator,
-    },
-    utils::{
-        fetch_metadata_bytes_blocking,
-        Uri,
-    },
-    CratePath,
-};
+use crate::CratePath;
 use codec::Decode;
 use frame_metadata::{
     v14::RuntimeMetadataV14,
@@ -69,5 +58,7 @@ impl SwaggerGenerator {
         item_mod: syn::ItemMod,
         crate_path: CratePath,
     ) -> TokenStream2 {
+        // TODO: magic to convert the metadata into a swagger spec
+        panic!("Not implemented yet");
     }
 }

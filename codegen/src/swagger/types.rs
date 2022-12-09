@@ -11,15 +11,79 @@ use std::{
     },
 };
 
+use http::Method;
 use serde::{
     ser::SerializeMap,
     Serialize,
     Serializer,
 };
 use serde_json::Value;
-use http::Method;
 
 const OPEN_API_VERSION: &str = "3.0.0";
+
+impl Serialize for MetaSchemaRef {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        match self {
+            MetaSchemaRef::Inline(schema) => schema.serialize(serializer),
+            MetaSchemaRef::Reference(name) => {
+                let mut s = serializer.serialize_map(None)?;
+                s.serialize_entry("$ref", &format!("#/components/schemas/{}", name))?;
+                s.end()
+            }
+        }
+    }
+}
+
+struct PathMap<'a>(&'a [MetaApi]);
+
+impl<'a> Serialize for PathMap<'a> {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        let mut s = serializer.serialize_map(Some(self.0.len()))?;
+        for api in self.0 {
+            for path in &api.paths {
+                s.serialize_entry(path.path, path)?;
+            }
+        }
+        s.end()
+    }
+}
+
+impl Serialize for MetaPath {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        let mut s = serializer.serialize_map(None)?;
+
+        for operation in &self.operations {
+            s.serialize_entry(&operation.method.to_string().to_lowercase(), operation)?;
+        }
+
+        s.end()
+    }
+}
+
+impl Serialize for MetaResponses {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        let mut s = serializer.serialize_map(None)?;
+        for resp in &self.responses {
+            match resp.status {
+                Some(status) => s.serialize_entry(&format!("{}", status), resp)?,
+                None => s.serialize_entry("default", resp)?,
+            }
+        }
+        s.end()
+    }
+}
+
+struct WebhookMap<'a>(&'a [MetaWebhook]);
+
+impl<'a> Serialize for WebhookMap<'a> {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        let mut s = serializer.serialize_map(Some(self.0.len()))?;
+        for webhook in self.0 {
+            s.serialize_entry(&webhook.name, &webhook.operation)?;
+        }
+        s.end()
+    }
+}
 
 pub(crate) struct Document<'a> {
     pub(crate) info: &'a MetaInfo,
@@ -28,6 +92,140 @@ pub(crate) struct Document<'a> {
     pub(crate) webhooks: Vec<MetaWebhook>,
     pub(crate) registry: Registry,
     pub(crate) external_document: Option<&'a MetaExternalDocument>,
+}
+
+impl<'a> Serialize for Document<'a> {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        #[derive(Serialize)]
+        #[serde(rename_all = "camelCase")]
+        struct Components<'a> {
+            schemas: &'a BTreeMap<String, MetaSchema>,
+            #[serde(skip_serializing_if = "BTreeMap::is_empty")]
+            security_schemes: &'a BTreeMap<&'static str, MetaSecurityScheme>,
+        }
+
+        let mut s = serializer.serialize_map(None)?;
+
+        s.serialize_entry("openapi", OPEN_API_VERSION)?;
+        s.serialize_entry("info", &self.info)?;
+        s.serialize_entry("servers", self.servers)?;
+        s.serialize_entry("tags", &self.registry.tags)?;
+        if !self.webhooks.is_empty() {
+            s.serialize_entry("webhooks", &WebhookMap(&self.webhooks))?;
+        }
+        s.serialize_entry("paths", &PathMap(&self.apis))?;
+        s.serialize_entry(
+            "components",
+            &Components {
+                schemas: &self.registry.schemas,
+                security_schemes: &self.registry.security_schemes,
+            },
+        )?;
+
+        if let Some(external_document) = self.external_document {
+            s.serialize_entry("externalDocs", &external_document)?;
+        }
+
+        s.end()
+    }
+}
+
+type UsedTypes = BTreeSet<String>;
+
+impl<'a> Document<'a> {
+    fn traverse_schema(&self, used_types: &mut UsedTypes, schema_ref: &'a MetaSchemaRef) {
+        let schema = match schema_ref {
+            MetaSchemaRef::Reference(name) => {
+                if used_types.contains(name.as_str()) {
+                    return
+                }
+                used_types.insert(name.clone());
+                self.registry
+                    .schemas
+                    .get(name.as_str())
+                    .unwrap_or_else(|| panic!("Schema `{}` does not registered", name))
+            }
+            MetaSchemaRef::Inline(schema) => schema,
+        };
+
+        for (_, schema_ref) in &schema.properties {
+            self.traverse_schema(used_types, schema_ref);
+        }
+
+        for schema_ref in &schema.items {
+            self.traverse_schema(used_types, schema_ref);
+        }
+
+        if let Some(schema_ref) = &schema.additional_properties {
+            self.traverse_schema(used_types, schema_ref);
+        }
+
+        for schema_ref in &schema.any_of {
+            self.traverse_schema(used_types, schema_ref);
+        }
+
+        for schema_ref in &schema.one_of {
+            self.traverse_schema(used_types, schema_ref);
+        }
+
+        for schema_ref in &schema.all_of {
+            self.traverse_schema(used_types, schema_ref);
+        }
+    }
+
+    fn traverse_media_types(
+        &self,
+        used_types: &mut UsedTypes,
+        meta_types: &'a [MetaMediaType],
+    ) {
+        for meta_type in meta_types {
+            self.traverse_schema(used_types, &meta_type.schema);
+        }
+    }
+
+    fn traverse_operation(
+        &self,
+        used_types: &mut UsedTypes,
+        operation: &'a MetaOperation,
+    ) {
+        for param in &operation.params {
+            self.traverse_schema(used_types, &param.schema);
+        }
+
+        if let Some(request) = &operation.request {
+            self.traverse_media_types(used_types, &request.content);
+        }
+
+        for response in &operation.responses.responses {
+            self.traverse_media_types(used_types, &response.content);
+        }
+    }
+
+    pub(crate) fn remove_unused_schemas(&mut self) {
+        let mut used_types = UsedTypes::new();
+
+        for api in self.apis.iter() {
+            for path in api.paths.iter() {
+                for operation in &path.operations {
+                    self.traverse_operation(&mut used_types, operation);
+                }
+            }
+        }
+
+        for api in self.webhooks.iter() {
+            self.traverse_operation(&mut used_types, &api.operation);
+        }
+
+        let all_schemas = self
+            .registry
+            .schemas
+            .keys()
+            .cloned()
+            .collect::<BTreeSet<_>>();
+        for name in all_schemas.difference(&used_types).collect::<Vec<_>>() {
+            self.registry.schemas.remove(name);
+        }
+    }
 }
 
 #[allow(clippy::trivially_copy_pass_by_ref)]
