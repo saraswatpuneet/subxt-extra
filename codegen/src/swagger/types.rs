@@ -929,8 +929,9 @@ impl Registry {
 }
 
 #[cfg(test)]
-mod test {
+mod tests {
     use super::*;
+    #[test]
     fn test_create_full_document() {
         // https://swagger.io/specification/#oas-document
         let metaInfo = MetaInfo {
@@ -1071,6 +1072,44 @@ mod test {
         let mut schema_btree_map = BTreeMap::new();
         schema_btree_map.insert(
             "MyObj_A".to_string(),
+            MetaSchema {
+                rust_typename: Some("union::with_discriminator::MyObj"),
+                ty: "object",
+                discriminator: Some(MetaDiscriminatorObject {
+                    property_name: "type",
+                    mapping: vec![
+                        ("A".to_string(), "#/components/schemas/MyObj_A".to_string()),
+                        ("B".to_string(), "#/components/schemas/MyObj_B".to_string()),
+                    ],
+                }),
+                any_of: vec![
+                    MetaSchemaRef::Reference("MyObj_A".to_string()),
+                    MetaSchemaRef::Reference("MyObj_B".to_string()),
+                ],
+                ..MetaSchema::ANY
+            },
+        );
+        schema_btree_map.insert(
+            "MyObj_B".to_string(),
+            MetaSchema {
+                rust_typename: Some("union::with_discriminator::MyObj"),
+                ty: "object",
+                discriminator: Some(MetaDiscriminatorObject {
+                    property_name: "type",
+                    mapping: vec![
+                        ("A".to_string(), "#/components/schemas/MyObj_A".to_string()),
+                        ("B".to_string(), "#/components/schemas/MyObj_B".to_string()),
+                    ],
+                }),
+                any_of: vec![
+                    MetaSchemaRef::Reference("MyObj_A".to_string()),
+                    MetaSchemaRef::Reference("MyObj_B".to_string()),
+                ],
+                ..MetaSchema::ANY
+            },
+        );
+        schema_btree_map.insert(
+            "BadRequestResult".to_string(),
             MetaSchema {
                 rust_typename: Some("union::with_discriminator::MyObj"),
                 ty: "object",
