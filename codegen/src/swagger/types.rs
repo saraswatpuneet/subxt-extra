@@ -927,3 +927,87 @@ impl Registry {
         }
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    fn test_create_full_document() {
+        let metaInfo = MetaInfo {
+            title: "Test".to_string(),
+            description: Some("Test".to_string()),
+            version: "1.0.0".to_string(),
+            contact: Some(MetaContact {
+                name: Some("Test".to_string()),
+                url: Some("http://localhost:8080".to_string()),
+                email: Some("frequency@frequency.xyz".to_string()),
+            }),
+            license: None,
+            summary: Some("Test".to_string()),
+            terms_of_service: None,
+        };
+        let metaServer = MetaServer {
+            url: "http://localhost:8080".to_string(),
+            description: Some("Test".to_string()),
+        };
+        let metaApi1 = MetaApi {
+            paths: vec![MetaPath {
+                path: "/test",
+                operations: vec![MetaOperation {
+                    method: http::Method::GET,
+                    operation_id: Some("test"),
+                    description: Some("Test"),
+                    tags: vec!["test"],
+                    code_samples: vec![],
+                    deprecated: false,
+                    external_docs: None,
+                    request: None,
+                    summary: Some("Test"),
+                    params: vec![MetaOperationParam {
+                        name: "test".to_string(),
+                        description: Some("Test".to_string()),
+                        required: true,
+                        deprecated: false,
+                        explode: false,
+                        in_type: MetaParamIn::Query,
+                        schema: MetaSchemaRef::Inline(Box::new(MetaSchema {
+                            rust_typename: Some("union::with_discriminator::MyObj"),
+                            ty: "object",
+                            discriminator: Some(MetaDiscriminatorObject {
+                                property_name: "type",
+                                mapping: vec![
+                                    (
+                                        "A".to_string(),
+                                        "#/components/schemas/MyObj_A".to_string(),
+                                    ),
+                                    (
+                                        "B".to_string(),
+                                        "#/components/schemas/MyObj_B".to_string(),
+                                    ),
+                                ],
+                            }),
+                            any_of: vec![
+                                MetaSchemaRef::Reference("MyObj_A".to_string()),
+                                MetaSchemaRef::Reference("MyObj_B".to_string()),
+                            ],
+                            ..MetaSchema::ANY
+                        })),
+                    }],
+                    responses: MetaResponses {
+                        responses: vec![MetaResponse {
+                            description: "A\nB\n\nC",
+                            status: Some(400),
+                            content: vec![MetaMediaType {
+                                content_type: "application/json; charset=utf-8",
+                                schema: MetaSchemaRef::Reference(
+                                    "BadRequestResult".to_string(),
+                                ),
+                            }],
+                            headers: vec![],
+                        }],
+                    },
+                    security: vec![],
+                }],
+            }],
+        };
+    }
+}
