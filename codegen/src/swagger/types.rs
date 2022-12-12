@@ -932,6 +932,7 @@ impl Registry {
 mod test {
     use super::*;
     fn test_create_full_document() {
+        // https://swagger.io/specification/#oas-document
         let metaInfo = MetaInfo {
             title: "Test".to_string(),
             description: Some("Test".to_string()),
@@ -1009,5 +1010,107 @@ mod test {
                 }],
             }],
         };
+        let metaWebHook1 = MetaWebhook {
+            name: "test",
+            operation: MetaOperation {
+                method: http::Method::GET,
+                operation_id: Some("test"),
+                description: Some("Test"),
+                tags: vec!["test"],
+                code_samples: vec![],
+                deprecated: false,
+                external_docs: None,
+                request: None,
+                summary: Some("Test"),
+                params: vec![MetaOperationParam {
+                    name: "test".to_string(),
+                    description: Some("Test".to_string()),
+                    required: true,
+                    deprecated: false,
+                    explode: false,
+                    in_type: MetaParamIn::Query,
+                    schema: MetaSchemaRef::Inline(Box::new(MetaSchema {
+                        rust_typename: Some("union::with_discriminator::MyObj"),
+                        ty: "object",
+                        discriminator: Some(MetaDiscriminatorObject {
+                            property_name: "type",
+                            mapping: vec![
+                                (
+                                    "A".to_string(),
+                                    "#/components/schemas/MyObj_A".to_string(),
+                                ),
+                                (
+                                    "B".to_string(),
+                                    "#/components/schemas/MyObj_B".to_string(),
+                                ),
+                            ],
+                        }),
+                        any_of: vec![
+                            MetaSchemaRef::Reference("MyObj_A".to_string()),
+                            MetaSchemaRef::Reference("MyObj_B".to_string()),
+                        ],
+                        ..MetaSchema::ANY
+                    })),
+                }],
+                responses: MetaResponses {
+                    responses: vec![MetaResponse {
+                        description: "A\nB\n\nC",
+                        status: Some(400),
+                        content: vec![MetaMediaType {
+                            content_type: "application/json; charset=utf-8",
+                            schema: MetaSchemaRef::Reference(
+                                "BadRequestResult".to_string(),
+                            ),
+                        }],
+                        headers: vec![],
+                    }],
+                },
+                security: vec![],
+            },
+        };
+        let mut schema_btree_map = BTreeMap::new();
+        schema_btree_map.insert(
+            "MyObj_A".to_string(),
+            MetaSchema {
+                rust_typename: Some("union::with_discriminator::MyObj"),
+                ty: "object",
+                discriminator: Some(MetaDiscriminatorObject {
+                    property_name: "type",
+                    mapping: vec![
+                        ("A".to_string(), "#/components/schemas/MyObj_A".to_string()),
+                        ("B".to_string(), "#/components/schemas/MyObj_B".to_string()),
+                    ],
+                }),
+                any_of: vec![
+                    MetaSchemaRef::Reference("MyObj_A".to_string()),
+                    MetaSchemaRef::Reference("MyObj_B".to_string()),
+                ],
+                ..MetaSchema::ANY
+            },
+        );
+        let mut tags_btree_set = BTreeSet::new();
+        tags_btree_set.insert(MetaTag {
+            name: "test",
+            description: Some("Test"),
+            external_docs: None,
+        });
+        let registry_info = Registry {
+            schemas: schema_btree_map,
+            tags: tags_btree_set,
+            security_schemes: BTreeMap::new(),
+        };
+        let meta_servers = vec![metaServer];
+        /// A complete swagger document
+        let mut test_document = Document {
+            info: &metaInfo,
+            servers: &meta_servers,
+            apis: vec![metaApi1],
+            webhooks: vec![metaWebHook1],
+            registry: registry_info,
+            external_document: None,
+        };
+        test_document.remove_unused_schemas();
+        let json_spec = serde_json::to_string_pretty(&test_document).unwrap();
+        println!("{}", json_spec);
     }
 }
